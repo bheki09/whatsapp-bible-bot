@@ -1,39 +1,28 @@
 from flask import Flask, request
-from twilio.twiml.messaging_response import MessagingResponse
+import requests
 
 app = Flask(__name__)
 
-# Sample data: expand later or connect DB
-BIBLE_VERSES = {
-    "john 3:16": "For God so loved the world that he gave his one and only Son...",
-    "psalm 23": "The Lord is my shepherd, I shall not want..."
-}
+TELEGRAM_TOKEN = "8155231562:AAHufu8A8q0UEExY0VpaA-wOLQ8ccyBudtQ"
+TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
 
-HYMNS = {
-    "45": "Amazing Grace, how sweet the sound...",
-    "100": "Great is Thy faithfulness..."
-}
+@app.route('/telegram', methods=['POST'])
+def telegram_webhook():
+    data = request.get_json()
+    chat_id = data['message']['chat']['id']
+    text = data['message'].get('text', '').lower()
 
-@app.route("/whatsapp", methods=["POST"])
-def whatsapp_reply():
-    incoming_msg = request.values.get("Body", "").strip().lower()
-    resp = MessagingResponse()
-    msg = resp.message()
-
-    if incoming_msg.startswith("verse"):
-        verse_key = incoming_msg.replace("verse", "").strip()
-        response_text = BIBLE_VERSES.get(verse_key, "Sorry, I don't have that verse.")
-        msg.body(response_text)
-
-    elif incoming_msg.startswith("hymn"):
-        hymn_number = incoming_msg.replace("hymn", "").strip()
-        response_text = HYMNS.get(hymn_number, "Sorry, I don't have that hymn.")
-        msg.body(response_text)
-
+    if 'john 3:16' in text:
+        reply = "Here it is: For God so loved the world..."
+    elif 'hymn 45' in text:
+        reply = "Hymn 45: Blessed Assurance, Jesus is mine..."
     else:
-        msg.body("Welcome! Send 'verse <book chapter:verse>' or 'hymn <number>' to get content.")
+        reply = "Sorry, I didn't understand. Try 'John 3:16' or 'hymn 45'."
 
-    return str(resp)
+    # Send the reply back
+    requests.post(TELEGRAM_API_URL, json={
+        'chat_id': chat_id,
+        'text': reply
+    })
+    return "ok"
 
-if __name__ == "__main__":
-    app.run(debug=True)
